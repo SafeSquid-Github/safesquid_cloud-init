@@ -1,0 +1,301 @@
+#cloud-config
+#Set HostName , update hostname as required
+fqdn: swg.safesquid.local
+hostname: swg
+prefer_fqdn_over_hostname: true
+#Add entry in 127.0.0.1 ${fqdn} in /etc/hosts file. 
+manage_etc_hosts: localhost
+#Set Timezone and Keyboard layout, Update TimeZone and Keyboard layout as per your locality.
+timezone: Asia/Kolkata
+keyboard:
+  layout: us
+#Create users = default users created during deployment process, administrator is admin users created for SafeSquid non-previlaged user, ssquid user created for safesquid service
+users:
+#Default user Created during deployment process
+  - default
+#Default SafeSquid admin user.
+  - name: administrator
+    lock_passwd: false
+    passwd: $6$rounds=4096$02uNR.T8UOB5kX$r2fBnqc1ccApRPEfT0b2BRkezrczJMZu7mwGWyyRxAgD0uewjV/u8KAexSranlTtwTdxakk0eRyuwR4fDxyKD.
+    groups: users, admin
+    sudo: ALL=(ALL) ALL
+    shell: /bin/bash
+#ssquid user created for safesquid service
+  - name: ssquid
+    gecos: ssquid
+    groups: root
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/sh
+    no_create_home: true
+runcmd:
+#Reset password for user "administrator" after first login
+    - [ passwd, --expire, administrator ]
+#Create Custom LVM  Partitions
+# [H:C:T:L] ## 'H' = host number## 'C' = controller number## 'T' = target number## 'L'= Logical Unit Number (LUN) (3-255)
+#Create Physical Volume
+    - lsscsi '[*:*:*:3]' | awk '{print $7}' | xargs pvcreate
+#Create Volume Group
+    - lsscsi '[*:*:*:3]' | awk '{print $7}' | xargs vgcreate azure-vg
+#Create Logical Volume
+#Values for the logical volume is set to minimum disk space required for each partition.
+#Update ( --size, '<Partition Size>' ) 
+#Maximum disk space for mentioined partitioins 
+## 4096 - /opt/safesquid
+## 4096 - /usr/local/safesquid
+## 8192 - /var/lib/safesquid
+## 8192 - /var/www/safesquid 
+#No maximum size is defined for
+##/var/log/safesquid , /var/db/safesquid, /var/cache/safesquid.
+    - [ lvcreate, --size, '512', --name, /dev/azure-vg/opt+safesquid, azure-vg ] 
+    - [ lvcreate, --size, '512', --name, /dev/azure-vg/var+www+safesquid, azure-vg ] 
+    - [ lvcreate, --size, '1024', --name, /dev/azure-vg/usr+local+safesquid, azure-vg ] 
+    - [ lvcreate, --size, '1024', --name, /dev/azure-vg/var+lib+safesquid, azure-vg ] 
+    - [ lvcreate, --size, '1024', --name, /dev/azure-vg/var+cache+safesquid, azure-vg ] 
+    - [ lvcreate, --size, '2048', --name, /dev/azure-vg/var+db+safesquid, azure-vg ] 
+    - [ lvcreate, --size, '5120', --name, /dev/azure-vg/var+log+safesquid, azure-vg ]
+#Make ext4 File system, 
+    - [ mkfs.ext4, /dev/azure-vg/var+log+safesquid ] 
+    - [ mkfs.ext4, /dev/azure-vg/var+db+safesquid ]
+    - [ mkfs.ext4, /dev/azure-vg/var+cache+safesquid ]
+    - [ mkfs.ext4, /dev/azure-vg/var+lib+safesquid ] 
+    - [ mkfs.ext4, /dev/azure-vg/var+www+safesquid ] 
+    - [ mkfs.ext4, /dev/azure-vg/usr+local+safesquid ]
+    - [ mkfs.ext4, /dev/azure-vg/opt+safesquid ]  
+#Create Dir if not found, 
+    - [ mkdir, --parents, /var/log/safesquid ] 
+    - [ mkdir, --parents, /var/db/safesquid ] 
+    - [ mkdir, --parents, /var/lib/safesquid ]
+    - [ mkdir, --parents, /var/cache/safesquid ]  
+    - [ mkdir, --parents, /var/www/safesquid ] 
+    - [ mkdir, --parents, /usr/local/safesquid ]  
+    - [ mkdir, --parents, /opt/safesquid ]
+#Mount Partitions, 
+    - [ mount, -a ]
+#Download SafeSquid tar-ball & extract.
+    - [ wget, "https://downloads.safesquid.com/appliance/binary/safesquid_latest.tar.gz", -O, /tmp/safesquid_latest.tar.gz ]
+    - [ tar, -xzvf, /tmp/safesquid_latest.tar.gz, -C, /tmp/ ]
+#Get msktutil. (Required for kerberos.) 
+    - [ wget, "https://downloads.safesquid.com/appliance/source/msktutil", -O, /usr/local/bin/msktutil]
+    - [ chmod, "0755", /usr/local/bin/msktutil]
+#Install SafeSquid
+    - [ bin/bash, /tmp/_mkappliance/installation/setup.sh ]
+#Setup MOTD, To be displayed when remote users login, example SSH to SafeSquid server. 
+    - |
+      echo "
+      \033[1;32m
+         _____            __           _____                   _       _
+        / ____|          / _|         / ____|                 (_)     | |
+       | (___     __ _  | |_    ___  | (___     __ _   _   _   _    __| |
+        \___ \   / _\ | |  _|  / _ \  \___ \   / _\ | | | | | | |  / _\ |
+        ____) | | (_| | | |   |  __/  ____) | | (_| | | |_| | | | | (_| |
+       |_____/   \ _,_| |_|    \___| |_____/   \__, |  \__,_| |_|  \__,_|
+                                                  | |
+                                                  |_|
+
+                                          _____  __          __  _____
+                                         / ____| \ \        / / / ____|
+                                        | (___    \ \  /\  / / | |  ___
+                                         \___ \    \ \/  \/ /  | | |_  |
+                                         ____) |    \  /\  /   | |___| |
+                                        |_____/      \/  \/     \_____/
+
+
+      Built on `date "+%d %B %Y"`
+
+      \033[0;35m+++++++++++++: \033[0;37mHelpful Information\033[0;35m :+++++++++++++++
+      \033[0;35m+     \033[0;37mWeb   \033[0;35m# \033[1;32mhttps://www.safesquid.com/
+      \033[0;35m+     \033[0;37mEMail \033[0;35m# \033[1;32msupport@safesquid.net
+      \033[0;35m+     \033[0;37mskype \033[0;35m# \033[1;32mSafeSquid 
+      \033[0;35m+++++++++++++++++: \033[0;37mSystem Data\033[0;35m :+++++++++++++++++++
+      +      \033[0;37mFqdn \033[0;35m= \033[1;32m`hostname -f`
+      \033[0;35m+   \033[0;37mAddress \033[0;35m= \033[1;32m`hostname -I`
+      \033[0;35m+    \033[0;37mKernel \033[0;35m= \033[1;32m`uname -r`
+      \033[0;35m+    \033[0;37mMemory \033[0;35m= \033[1;32m`cat /proc/meminfo | grep MemTotal | awk {'print $2'}` kB
+      \033[0;35m+++++++++++: \033[0;31mMaintenance Information\033[0;35m :+++++++++++++
+      +\033[0;31m `cat /etc/motd-maintenance`
+      \033[0;35m+++++++++++++++++++++++++++++++++++++++++++++++++++\033[0;37m
+      " > /etc/motd
+#Enable/Start/Restart services.
+    - [ systemctl, start, bind9-resolvconf ]
+    - [ systemctl, enable, bind9-resolvconf ]
+    - [ systemctl, restart, bind9.service ]
+    - [ systemctl, restart, monit.service ]
+#Installing packages required for SafeSquid.
+packages:
+  - aptitude
+  - debconf
+  - debconf-utils
+  - dpkg
+  - update-motd
+  - perl-base
+  - plymouth-themes
+  - zlib1g
+  - tar
+  - heimdal-clients
+  - libsasl2-modules-gssapi-heimdal
+  - libgssapi3-heimdal
+  - libkrb5-26-heimdal
+  - libsasl2-modules-ldap
+  - libudns0
+  - libpam0g
+  - libcap-ng0
+  - libcap2-bin
+  - libmagic1
+  - ntp
+  - ntpdate
+  - curl
+  - vim
+  - wget
+  - gnuplot-nox
+  - bind9
+  - bind9utils
+  - bind9-host
+  - resolvconf
+  - ifupdown
+  - monit
+  - sqlite3
+  - libkeepalive0
+  - clamav-daemon
+  - openssh-server
+  - tree
+  - pcregrep
+#Creating & edit Files
+write_files:
+#Fstab Entry for device automount on boot.
+- content: |
+      /dev/azure-vg/var+log+safesquid       /var/log/safesquid     ext4  defaults   0    0
+      /dev/azure-vg/var+db+safesquid        /var/db/safesquid      ext4  defaults   0    0
+      /dev/azure-vg/var+cache+safesquid     /var/cache/safesquid   ext4  defaults   0    0
+      /dev/azure-vg/var+lib+safesquid       /var/lib/safesquid     ext4  defaults   0    0
+      /dev/azure-vg/var+www+safesquid       /var/www/safesquid     ext4  defaults   0    0
+      /dev/azure-vg/usr+local+safesquid     /usr/local/safesquid   ext4  defaults   0    0
+      /dev/azure-vg/opt+safesquid           /opt/safesquid         ext4  defaults   0    0
+  path: /etc/fstab
+  permissions: '0644'
+  append: true
+#Set Limits. 
+- content: |
+      ulimit -HSn 8192
+  path: /root/.bashrc
+  owner: root:root
+  permissions: '0644'
+  append: true
+- content: |
+      * hard nofile 8192
+  path: /etc/security/limits.conf
+  owner: root:root
+  permissions: '0644'
+  append: true
+- content: |
+      * soft nofile 8192
+  path: /etc/security/limits.conf
+  owner: root:root
+  permissions: '0644'
+  append: true
+#Create an empty file.
+- content: |
+
+  path: /etc/motd-maintenance
+  owner: root:root
+  permissions: '0644' 
+- content: |
+
+  path: /etc/bind/safesquid.dns.conf
+  owner: root:root
+  permissions: '0644'
+#Set Issue, To be displayed when users login to SafeSquid console.
+- content: |
+      Thank You! for choosing SafeSquid Appliance
+      This Appliance has been built using %v
+
+      Username : administrator
+      Password : safesquid
+      You need to reset password on first login
+  path: /etc/issue
+  owner: root:root
+  permissions: '0644'
+- content: |
+      Thank You! for choosing SafeSquid Appliance
+      This Appliance has been built using %v
+
+      Username : administrator
+      Password : safesquid
+      You need to reset password on first login
+  path: /etc/issue.net
+  owner: root:root
+  permissions: '0644'
+#Edit Bind9, 
+- content: |
+      options {
+              directory "/var/cache/bind";
+
+              // If there is a firewall between you and nameservers you want
+              // to talk to, you may need to fix the firewall to allow multiple
+              // ports to talk.  See http://www.kb.cert.org/vuls/id/800113
+
+              // If your ISP provided one or more IP addresses for stable
+              // nameservers, you probably want to use them as forwarders.
+              // Uncomment the following block, and insert the addresses replacing
+              // the all-0's placeholder.
+
+              // forwarders {
+              //      0.0.0.0;
+              // };
+
+              //========================================================================
+              // If BIND logs error messages about the root key being expired,
+              // you will need to update your keys.  See https://www.isc.org/bind-keys
+              //========================================================================
+              //dnssec-validation auto;
+              dnssec-validation no; 
+
+              max-cache-ttl 300;
+              max-ncache-ttl 300;
+
+              auth-nxdomain no;    # conform to RFC1035
+              listen-on-v6 { any; };
+        };
+  path: /etc/bind/named.conf.options
+  owner: root:root
+  permissions: '0644'
+- content: |
+      include "/etc/bind/safesquid.dns.conf";
+  path: /etc/bind/named.conf
+  owner: root:root
+  permissions: '0644'
+  append: true
+  defer: true
+#Edit resolvconf to use nameserver as 127.0.0.1 used by bind9 an authoritative name server for DNS zones and a recursive resolver in the network.
+- content: |
+      TRUNCATE_NAMESERVER_LIST_AFTER_LOOPBACK_ADDRESS=yes
+  path: /etc/default/resolvconf
+  append: true
+  defer: true
+#Make First Boot Script which will update the /etc/issue file after sucessfull first login for user administrator. 
+- content: |
+      #!/bin/bash
+      
+      RESET_ISSUE()
+      {
+        /usr/bin/head -n 3 /etc/issue > /etc/issue.net 
+        cp /etc/issue.net /etc/issue
+      }
+
+      MAIN()
+      { 
+        RESET_ISSUE
+      }
+
+      MAIN
+      mv /usr/local/src/first_boot.sh /usr/local/src/_first_boot.sh
+  path: /usr/local/src/first_boot.sh
+  owner: root:root
+  permissions: '0755'
+#Set First Boot.
+- content: |
+      [ -f "/usr/local/src/first_boot.sh" ] && /usr/local/src/first_boot.sh
+  path: /root/.bashrc
+  append: true
+#Update && Upgrade packages.
+package_update: true
+package_upgrade: true
