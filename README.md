@@ -1,11 +1,10 @@
 # Overview
 
-You cannot setup SafeSquid using SAB on a PaaS such as Azure that does not allow upload of custom ISO file.
-You can download the SafeSquid tar-ball and use it to manually setup on a virtual guest created on such PaaS.
-However, the other optimizations done by the SAB, require substantial effort, and disk partitioning remains unoptimized.
-Most importantly, implementing the optimum disk partitioning recipe can be most frustrating for a first-timer.
-Logs, caching objects, and various other files created in runtime by SafeSquid and other Linux applications and processes, can consume disk space, leading to performance degradation, or even application failure.
-The SAB creates custom partitions using LVM, ensuring isolation of files in logical volumes, and enables easy addition of storage to extend any partition when need arises. 
+Cloud-init is the industry standard multi-distribution method for cross-platform cloud instance initialisation. It is supported across all major public cloud providers, provisioning systems for private cloud infrastructure, and bare-metal installations.
+During boot, cloud-init identifies the cloud it is running on and initialises the system accordingly. Cloud instances will automatically be provisioned during first boot with networking, storage, SSH keys, packages and various other system aspects already configured.
+Cloud-init provides the necessary glue between launching a cloud instance and connecting to it so that it works as expected.
 
-Most PaaS providers such as Azure, enable users to customize their O/S setup via cloud-init. Cloud-init enables partition customization, thus mitigates our key concern. 
+For cloud users, cloud-init provides no-install first-boot configuration management of a cloud instance. For cloud providers, it provides instance setup that can be integrated with your cloud.
+
+Most PaaS providers such as Azure, GCP, AWS enables user to customize their O/S setup via cloud-init.
 Follow the document [Implementing SafeSquid on Cloud](https://help.safesquid.com/portal/en/kb/articles/implementing-safesquid-on-cloud) to setup SafeSquid on such a PaaS provider using the cloud-init script. 
