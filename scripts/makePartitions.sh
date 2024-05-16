@@ -91,7 +91,6 @@ GET_TOTAL_DISK_SIZE () {
 
     DISK_TOTAL=$(echo "${DISK_LIST[*]}" | xargs -n 1 lsblk -b -n | awk '/disk/ {total += $4} END {printf "%.0f", total}')
     TOTAL_DISK_SIZE=$(( DISK_TOTAL - FREE ))
-
 }
 
 ALLOT_MINIMUM_DISK () {
@@ -133,8 +132,8 @@ GET_DISK_PRIORITY () {
 }
 
 # Calculate the total priority weight
-GET_TOTAL_PRIORITY()
-{
+GET_TOTAL_PRIORITY () {
+
     typeset -i TOTAL_PRIORITY=0
     for key in "${!DISK_PRIORITY[@]}"
     do 
@@ -161,7 +160,7 @@ ALLOT_DISK () {
 
 #Create lvm code block for user data.
 LV_CREATE () {
-    [ -z "${DISK_LIST[*]}" ] && echo "ERROR: NO UNUSED DISK ATTACHED FOR CUSTOM PARTITIONING" && exit 1 
+    [ -z "${DISK_LIST[*]}" ] && echo "ERROR: DISK NOT FOUND!" echo "ATTACH A NEW BLOCK DEVICE" && exit 1 
     
     #Check if volume group already exists, if exists then use the existing vg
     VG_CREATE="0"
