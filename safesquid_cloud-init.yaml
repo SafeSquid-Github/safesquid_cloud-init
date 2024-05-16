@@ -31,46 +31,8 @@ runcmd:
 #Reset password for user "administrator" after first login
     - [ passwd, --expire, administrator ]
 #Create Custom LVM  Partitions
-# [H:C:T:L] ## 'H' = host number## 'C' = controller number## 'T' = target number## 'L'= Logical Unit Number (LUN) (3-255)
-#Create Physical Volume
-    - lsscsi '[*:*:*:3]' | awk '{print $7}' | xargs pvcreate
-#Create Volume Group
-    - lsscsi '[*:*:*:3]' | awk '{print $7}' | xargs vgcreate azure-vg
-#Create Logical Volume
-#Values for the logical volume is set to minimum disk space required for each partition.
-#Update ( --size, '<Partition Size>' ) 
-#Maximum disk space for mentioined partitioins 
-## 4096 - /opt/safesquid
-## 4096 - /usr/local/safesquid
-## 8192 - /var/lib/safesquid
-## 8192 - /var/www/safesquid 
-#No maximum size is defined for
-##/var/log/safesquid , /var/db/safesquid, /var/cache/safesquid.
-    - [ lvcreate, --size, '512', --name, /dev/azure-vg/opt+safesquid, azure-vg ] 
-    - [ lvcreate, --size, '512', --name, /dev/azure-vg/var+www+safesquid, azure-vg ] 
-    - [ lvcreate, --size, '1024', --name, /dev/azure-vg/usr+local+safesquid, azure-vg ] 
-    - [ lvcreate, --size, '1024', --name, /dev/azure-vg/var+lib+safesquid, azure-vg ] 
-    - [ lvcreate, --size, '1024', --name, /dev/azure-vg/var+cache+safesquid, azure-vg ] 
-    - [ lvcreate, --size, '2048', --name, /dev/azure-vg/var+db+safesquid, azure-vg ] 
-    - [ lvcreate, --size, '5120', --name, /dev/azure-vg/var+log+safesquid, azure-vg ]
-#Make ext4 File system, 
-    - [ mkfs.ext4, /dev/azure-vg/var+log+safesquid ] 
-    - [ mkfs.ext4, /dev/azure-vg/var+db+safesquid ]
-    - [ mkfs.ext4, /dev/azure-vg/var+cache+safesquid ]
-    - [ mkfs.ext4, /dev/azure-vg/var+lib+safesquid ] 
-    - [ mkfs.ext4, /dev/azure-vg/var+www+safesquid ] 
-    - [ mkfs.ext4, /dev/azure-vg/usr+local+safesquid ]
-    - [ mkfs.ext4, /dev/azure-vg/opt+safesquid ]  
-#Create Dir if not found, 
-    - [ mkdir, --parents, /var/log/safesquid ] 
-    - [ mkdir, --parents, /var/db/safesquid ] 
-    - [ mkdir, --parents, /var/lib/safesquid ]
-    - [ mkdir, --parents, /var/cache/safesquid ]  
-    - [ mkdir, --parents, /var/www/safesquid ] 
-    - [ mkdir, --parents, /usr/local/safesquid ]  
-    - [ mkdir, --parents, /opt/safesquid ]
-#Mount Partitions, 
-    - [ mount, -a ]
+    - [ wget, "https://raw.githubusercontent.com/SafeSquid-Github/safesquid_cloud-init/main/scripts/makePartitions.sh", -o, /tmp/makePartitions.sh ]
+    - [ bin/bash, /tmp/makePartitions.sh ]
 #Download SafeSquid tar-ball & extract.
     - [ wget, "https://downloads.safesquid.com/appliance/binary/safesquid_latest.tar.gz", -O, /tmp/safesquid_latest.tar.gz ]
     - [ tar, -xzvf, /tmp/safesquid_latest.tar.gz, -C, /tmp/ ]
@@ -159,20 +121,9 @@ packages:
   - openssh-server
   - tree
   - pcregrep
+  - net-tools
 #Creating & edit Files
 write_files:
-#Fstab Entry for device automount on boot.
-- content: |
-      /dev/azure-vg/var+log+safesquid       /var/log/safesquid     ext4  defaults   0    0
-      /dev/azure-vg/var+db+safesquid        /var/db/safesquid      ext4  defaults   0    0
-      /dev/azure-vg/var+cache+safesquid     /var/cache/safesquid   ext4  defaults   0    0
-      /dev/azure-vg/var+lib+safesquid       /var/lib/safesquid     ext4  defaults   0    0
-      /dev/azure-vg/var+www+safesquid       /var/www/safesquid     ext4  defaults   0    0
-      /dev/azure-vg/usr+local+safesquid     /usr/local/safesquid   ext4  defaults   0    0
-      /dev/azure-vg/opt+safesquid           /opt/safesquid         ext4  defaults   0    0
-  path: /etc/fstab
-  permissions: '0644'
-  append: true
 #Set Limits. 
 - content: |
       ulimit -HSn 8192
