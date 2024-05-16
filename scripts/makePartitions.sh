@@ -164,16 +164,18 @@ LV_CREATE () {
     [ -z "${DISK_LIST[*]}" ] && echo "ERROR: NO UNUSED DISK ATTACHED FOR CUSTOM PARTITIONING" && exit 1 
     
     #Check if volume group already exists, if exists then use the existing vg
-    VG=$(vgs --noheadings | awk '{print $1}')
     VG_CREATE="0"
+    VG=$(vgs --noheadings | awk '{print $1}')
     #If vg is not present then create a new volume group.
-    [ -z "${VG}" ] && VG="vg$(hostname -s)" && VG_CREATE="1"
+    [ -z "${VG}" ] && VG_CREATE="1" && VG="vg$(hostname -s)" 
     
-    #Createphysical volumes to be used in lvm. 
-    pvcreate "${DISK_LIST[@]}"
-
-    #Create volume group if not present else extend to existing vloume group
-    [ "${VG_CREATE}" == "1" ] && vgcreate "${VG}" "${DISK_LIST[@]}" || vgextend "${VG}" "${DISK_LIST[@]}"
+    #Create physical volumes to be used in lvm and then create volume group if not present else extend to existing vloume group
+    for DISK_ADD in "${DISK_LIST[@]}"
+    do
+        pvcreate "${DISK_ADD}"
+        [ "${VG_CREATE}" == "1" ] && vgcreate "${VG}" "${DISK_ADD}"
+        [ "${VG_CREATE}" == "0" ] && vgextend "${VG}" "${DISK_ADD}"
+    done
   
 	for LV in "${!DISK_NAME[@]}"
 	do 
