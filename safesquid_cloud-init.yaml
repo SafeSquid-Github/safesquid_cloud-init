@@ -31,7 +31,7 @@ runcmd:
 #Reset password for user "administrator" after first login
     - [ passwd, --expire, administrator ]
 #Create Custom LVM  Partitions
-    - [ wget, "https://raw.githubusercontent.com/SafeSquid-Github/safesquid_cloud-init/main/scripts/makePartitions.sh", -o, /tmp/makePartitions.sh ]
+    - [ wget, "https://raw.githubusercontent.com/SafeSquid-Github/safesquid_cloud-init/main/scripts/makePartitions.sh", -O, /tmp/makePartitions.sh ]
     - [ bin/bash, /tmp/makePartitions.sh ]
 #Download SafeSquid tar-ball & extract.
     - [ wget, "https://downloads.safesquid.com/appliance/binary/safesquid_latest.tar.gz", -O, /tmp/safesquid_latest.tar.gz ]
