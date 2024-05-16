@@ -8,3 +8,8 @@ For cloud users, cloud-init provides no-install first-boot configuration managem
 
 Most PaaS providers such as Azure, GCP, AWS enables user to customize their O/S setup via cloud-init.
 Follow the document [Implementing SafeSquid on Cloud](https://help.safesquid.com/portal/en/kb/articles/implementing-safesquid-on-cloud) to setup SafeSquid on such a PaaS provider using the cloud-init script. 
+
+# Tested Platforms 
+1. Microsoft Azure
+2. Amazon AWS
+3. Digital Ocean
