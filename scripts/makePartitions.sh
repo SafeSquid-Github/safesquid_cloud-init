@@ -166,13 +166,13 @@ LV_CREATE () {
     #Check if volume group already exists, if exists then use the existing vg
     VG=$(vgs --noheadings | awk '{print $1}') 
     #If vg is not present then create a new volume group.
-    [ -z "${VG}" ] && VGN="vg$(hostname -s)"
+    [ -z "${VG}" ] && VG="vg$(hostname -s)"
     
     #Createphysical volumes to be used in lvm. 
     pvcreate "${DISK_LIST[@]}"
 
     #Create volume group if not present else extend to existing vloume group
-    [ -z "${VG}" ] && vgcreate "${VGN}" "${DISK_LIST[@]}" || vgextend "${VG}" "${DISK_LIST[@]}"
+    [ -z "${VG}" ] && vgcreate "${VG}" "${DISK_LIST[@]}" || vgextend "${VG}" "${DISK_LIST[@]}"
   
 	for LV in "${!DISK_NAME[@]}"
 	do 
