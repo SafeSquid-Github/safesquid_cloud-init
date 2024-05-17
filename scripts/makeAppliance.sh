@@ -27,7 +27,6 @@ SET_ULIMITS ()
 
 SETUP_MOTD ()
 {
-
 touch /etc/motd-maintenance
 echo -e "
 \033[1;32m
@@ -63,7 +62,6 @@ echo -e "
 +\033[0;31m $(cat /etc/motd-maintenance)
 \033[0;35m+++++++++++++++++++++++++++++++++++++++++++++++++++\033[0;37m
 " > /etc/motd
-
 }
 
 INSTALL_DEPENDENCIES()
@@ -134,7 +132,6 @@ GET_MSKTUTIL ()
 
 FIX_BIND9()
 {
-
 	sed -i '22i\
 	 \n\tmax-cache-ttl 300; \n\tmax-ncache-ttl 300; 
 	' /etc/bind/named.conf.options
@@ -145,6 +142,7 @@ FIX_BIND9()
 	include "/etc/bind/safesquid.dns.conf";
 	_EOF
 
+	ln -sf /etc/init.d/named /etc/init.d/bind9
 	/etc/init.d/bind9 restart
 	systemctl start bind9-resolvconf
 	systemctl enable bind9-resolvconf
