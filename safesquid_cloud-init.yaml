@@ -13,13 +13,6 @@ keyboard:
 users:
 #Default user Created during deployment process
   - default
-#Default SafeSquid admin user.
-  - name: administrator
-    lock_passwd: false
-    passwd: $6$rounds=4096$02uNR.T8UOB5kX$r2fBnqc1ccApRPEfT0b2BRkezrczJMZu7mwGWyyRxAgD0uewjV/u8KAexSranlTtwTdxakk0eRyuwR4fDxyKD.
-    groups: users, admin
-    sudo: ALL=(ALL) ALL
-    shell: /bin/bash
 #ssquid user created for safesquid service
   - name: ssquid
     gecos: ssquid
@@ -77,11 +70,13 @@ runcmd:
       +\033[0;31m `cat /etc/motd-maintenance`
       \033[0;35m+++++++++++++++++++++++++++++++++++++++++++++++++++\033[0;37m
       " > /etc/motd
+#Create a softlink for the bind9 with named
+    - [ ln, -sf, /etc/init.d/named, /etc/init.d/bind9 ]
 #Enable/Start/Restart services.
-    - [ systemctl, start, bind9-resolvconf ]
     - [ systemctl, enable, bind9-resolvconf ]
-    - [ systemctl, restart, bind9.service ]
+    - [ systemctl, start, bind9-resolvconf ]
     - [ systemctl, restart, monit.service ]
+    - [ /etc/inti.d/named, restart ]
 #Installing packages required for SafeSquid.
 packages:
   - aptitude
@@ -159,20 +154,7 @@ write_files:
       Thank You! for choosing SafeSquid Appliance
       This Appliance has been built using %v
 
-      Username : administrator
-      Password : safesquid
-      You need to reset password on first login
   path: /etc/issue
-  owner: root:root
-  permissions: '0644'
-- content: |
-      Thank You! for choosing SafeSquid Appliance
-      This Appliance has been built using %v
-
-      Username : administrator
-      Password : safesquid
-      You need to reset password on first login
-  path: /etc/issue.net
   owner: root:root
   permissions: '0644'
 #Edit Bind9, 
@@ -222,31 +204,6 @@ write_files:
   path: /etc/default/resolvconf
   append: true
   defer: true
-#Make First Boot Script which will update the /etc/issue file after sucessfull first login for user administrator. 
-- content: |
-      #!/bin/bash
-      
-      RESET_ISSUE()
-      {
-        /usr/bin/head -n 3 /etc/issue > /etc/issue.net 
-        cp /etc/issue.net /etc/issue
-      }
-
-      MAIN()
-      { 
-        RESET_ISSUE
-      }
-
-      MAIN
-      mv /usr/local/src/first_boot.sh /usr/local/src/_first_boot.sh
-  path: /usr/local/src/first_boot.sh
-  owner: root:root
-  permissions: '0755'
-#Set First Boot.
-- content: |
-      [ -f "/usr/local/src/first_boot.sh" ] && /usr/local/src/first_boot.sh
-  path: /root/.bashrc
-  append: true
 #Update && Upgrade packages.
 package_update: true
 package_upgrade: true
