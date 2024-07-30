@@ -1,7 +1,4 @@
 #cloud-config
-#Set HostName , update hostname as required
-fqdn: swg.domain.local
-hostname: swg
 prefer_fqdn_over_hostname: true
 #Add entry in 127.0.0.1 ${fqdn} in /etc/hosts file. 
 manage_etc_hosts: localhost
