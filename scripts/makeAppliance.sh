@@ -103,6 +103,8 @@ INSTALL_DEPENDENCIES()
 	PACKS+=("openssh-server")
 	PACKS+=("tree")
 	PACKS+=("net-tools")
+	PACKS+=("lvm2")
+
 	
 	D=${DEBIAN_FRONTEND}	
 	export DEBIAN_FRONTEND=noninteractive
