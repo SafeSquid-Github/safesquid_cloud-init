@@ -60,6 +60,19 @@ DISK_PRIORITY["/var/www/safesquid"]=2
 DISK_PRIORITY["/var/db/safesquid"]=2
 DISK_PRIORITY["/var/log/safesquid"]=9
 
+INSTALL_DEPENDENCIES()
+{
+	declare -a PACKS
+	PACKS+=("lvm2")
+
+	
+	D=${DEBIAN_FRONTEND}	
+	export DEBIAN_FRONTEND=noninteractive
+	apt-get update && apt-get upgrade 
+	apt-get install -y ${PACKS[*]}
+	export DEBIAN_FRONTEND=${D}
+}
+
 # Get list of unused paritions
 GET_DISK_LIST () { 
 
@@ -191,6 +204,7 @@ LV_CREATE () {
 # MAIN
 MAIN () {
 
+	INSTALL_DEPENDENCIES
     GET_DISK_LIST
     GET_TOTAL_DISK_SIZE
     ALLOT_MINIMUM_DISK
